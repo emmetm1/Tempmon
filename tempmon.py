@@ -9,6 +9,7 @@ while True:
     try:
         temp_c = dht.temperature
         humidity = dht.humidity
+        #Convert C to F
         temp_f = temp_c * 9.0 / 5.0 + 32.0
         # Print what we got to the REPL
         print("Temp: {:.1f} *F \t Humidity: {}%".format(temp_f, humidity))
