@@ -24,7 +24,7 @@ write_api = client.write_api(write_options=SYNCHRONOUS)
 
 
 # Test prints to confirm values
-#print("temp is " + str(tempf))
+#print("temp is " + str(temp_f))
 #print("humidity is " + str(humid))
 
 
@@ -34,17 +34,17 @@ while True:
         one_call = mgr.one_call(lat=44.980, lon=-93.264, exclude='minutely,hourly', units='imperial')
 
         # Set weather values
-        humidity = one_call.current.humidity 
+        humidity = float(one_call.current.humidity)  
         tempdic = one_call.current.temperature()
-        tempf = tempdic["temp"]
+        temp_f = tempdic["temp"]
 
         # Write to Influx 
-        TempData = Point("Temp").tag("location", "Outdoors").field("temp_f", tempf).time(datetime.utcnow(), WritePrecision.NS)
+        TempData = Point("Temp").tag("location", "Outdoors").field("temp_f", temp_f).time(datetime.utcnow(), WritePrecision.NS)
         HumidityData = Point("Humidity").tag("location", "Outdoors").field("humidity", humidity).time(datetime.utcnow(), WritePrecision.NS)
         write_api.write(bucket, org, TempData)
         write_api.write(bucket, org, HumidityData)
         print("write to db success", temp_f)
-        time.sleep(10)
+        time.sleep(300)
     except Exception as e:
         logging.error(traceback.format_exc())
         exit
