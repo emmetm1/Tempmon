@@ -1,6 +1,8 @@
 import traceback
 import logging
 import time
+import os
+from dotenv import load_dotenv
 from pyowm import OWM
 from pyowm.utils import config
 from pyowm.utils import timestamps
@@ -9,24 +11,19 @@ import influxdb_client
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+# load env variables
+load_dotenv()
 
 # Initilize owm
-owm = OWM('cc98066d355099341267dd7559c5f6b0')
+owm = OWM(os.getenv("OW_WEATHER_API_KEY"))
 mgr = owm.weather_manager()
 
 # Initilize Influx Client
-token = "Gtvnbd9_wl5bf52mPfXCVc-ERnbEGMMTRscK_fhwQqnoL1V58sJpsjW42gDhQh2ANIV_GCZoTsAcMXV5pLSm4A=="
+token = os.getenv("INFLUX_API_KEY")
 org = "whem-home"
 bucket = "Weather-Data"
 client = influxdb_client.InfluxDBClient(url="http://192.168.50.66:8086", token=token, org=org)
 write_api = client.write_api(write_options=SYNCHRONOUS)
-
-
-
-# Test prints to confirm values
-#print("temp is " + str(temp_f))
-#print("humidity is " + str(humid))
-
 
 while True:
     try:

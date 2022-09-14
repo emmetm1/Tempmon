@@ -5,6 +5,11 @@ import influxdb_client
 import adafruit_dht
 import board
 import time
+import os
+from dotenv import load_dotenv
+
+# load env variables
+load_dotenv()
 
 # You can generate an API token from the "API Tokens Tab" in the UI
 token = "Gtvnbd9_wl5bf52mPfXCVc-ERnbEGMMTRscK_fhwQqnoL1V58sJpsjW42gDhQh2ANIV_GCZoTsAcMXV5pLSm4A=="

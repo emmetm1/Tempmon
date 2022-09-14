@@ -1,13 +1,18 @@
 import traceback
 import logging
 import time
+import os
+from dotenv import load_dotenv
 from pyowm import OWM
 from pyowm.utils import config
 from pyowm.utils import timestamps
 from datetime import datetime
 
+# load env variables
+load_dotenv()
+
 # Initilize owm
-owm = OWM('cc98066d355099341267dd7559c5f6b0')
+owm = OWM(os.getenv("OW_WEATHER_API_KEY"))
 mgr = owm.weather_manager()
 
 # Search for current weather in Minneapolis and get details
