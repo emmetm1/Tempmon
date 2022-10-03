@@ -30,9 +30,9 @@ while True:
         # Search for current weather in Minneapolis and get details
         one_call = mgr.one_call(lat=44.980, lon=-93.264, exclude='minutely,hourly', units='imperial')
 
-        # Set weather values
+        # Set weather values. cast temp/humidty to float because that's the type influx expects to see.
         humidity = float(one_call.current.humidity)  
-        tempdic = one_call.current.temperature()
+        tempdic = float(one_call.current.temperature())
         temp_f = tempdic["temp"]
 
         # Write to Influx 
