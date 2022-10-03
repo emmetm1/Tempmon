@@ -21,7 +21,7 @@ one_call = mgr.one_call(lat=44.980, lon=-93.264, exclude='minutely,hourly', unit
 # Set weather values
 humidity = float(one_call.current.humidity) 
 tempdic = one_call.current.temperature()
-tempf = tempdic["temp"]
+tempf = float(tempdic["temp"])
 
 print(tempf)
 print(humidity)

@@ -32,8 +32,8 @@ while True:
 
         # Set weather values. cast temp/humidty to float because that's the type influx expects to see.
         humidity = float(one_call.current.humidity)  
-        tempdic = float(one_call.current.temperature())
-        temp_f = tempdic["temp"]
+        tempdic = one_call.current.temperature()
+        temp_f = float(tempdic["temp"])
 
         # Write to Influx 
         TempData = Point("Temp").tag("location", "Outdoors").field("temp_f", temp_f).time(datetime.utcnow(), WritePrecision.NS)
