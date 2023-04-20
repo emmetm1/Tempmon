@@ -1,3 +1,5 @@
+import os
+import logging
 from datetime import datetime
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
@@ -5,45 +7,55 @@ import influxdb_client
 import adafruit_dht
 import board
 import time
-import os
 from dotenv import load_dotenv
-import logging
 
-log_file = '/var/log/tempmon.log'
-logging.basicConfig(filename=log_file, level=logging.DEBUG)
-
-# load env variables
 load_dotenv()
+token = os.environ["API_TOKEN"]
 
-# Initilize DHT22
-dht = adafruit_dht.DHT22(board.D4)
+logging.basicConfig(
+    filename='/var/log/tempmon.log', level=logging.ERROR,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s'
+)
 
-# Initilize Influx Client
-token = os.getenv("INFLUX_API_KEY")
 org = "whem-home"
 bucket = "Weather-Data"
-location = "Upstairs"
-client = influxdb_client.InfluxDBClient(url="http://192.168.50.66:8086", token=token, org=org)
-write_api = client.write_api(write_options=SYNCHRONOUS)
+dht = adafruit_dht.DHT22(board.D4)
+INFLUXDB_SERVER_URL = "http://192.168.50.66:8086"
+SLEEP_INTERVAL = 180
 
-while True:
-    try:
-        temp_c = dht.temperature
-        humidity = dht.humidity
-        temp_f = temp_c * 9.0 / 5.0 + 32.0
+def read_sensor_data(max_retries=5):
+    for _ in range(max_retries):
+        try:
+            temp_c = dht.temperature
+            humidity = dht.humidity
+            return temp_c, humidity
+        except RuntimeError as e:
+            logging.warning(f"RuntimeError: {e}. Retrying...")
+            time.sleep(2)
+    logging.error("Failed to read sensor data after {} attempts.".format(max_retries))
+    return None, None
 
-        if humidity is None or temp_c is None:
-            raise Exception("Failed to read from DHT22 sensor")
-        if humidity > 100 or humidity < 0 or temp_f < -40 or temp_f > 120:
-            raise Exception("Invalid data received from DHT22 sensor")
+def main():
+    with InfluxDBClient(url=INFLUXDB_SERVER_URL, token=token, org=org) as client:
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+        last_read_time = time.monotonic()
 
-        TempData = Point("Temp").tag("location", "Upstairs").field("temp_f", temp_f).time(datetime.utcnow(), WritePrecision.NS)
-        HumidityData = Point("Humidity").tag("location", "Upstairs").field("humidity", humidity).time(datetime.utcnow(), WritePrecision.NS)
-        write_api.write(bucket, org, TempData)
-        write_api.write(bucket, org, HumidityData)
+        while True:
+            current_time = time.monotonic()
 
-        logging.info("write to db success. temp_f %s, humidity %s", temp_f, humidity)
-        time.sleep(300)
-    except Exception as e:
-        logging.error("Error while reading from sensor: %s", e)
-        time.sleep(10)
+            if current_time - last_read_time >= SLEEP_INTERVAL:
+                temp_c, humidity = read_sensor_data()
+
+                if temp_c is not None and humidity is not None and -40 <= temp_c <= 125 and 0 <= humidity <= 100:
+                    temp_f = temp_c * 9.0 / 5.0 + 32.0
+                    TempData = Point("Temp").tag("location", "Upstairs").field("temp_f", temp_f).time(datetime.utcnow(), WritePrecision.NS)
+                    HumidityData = Point("Humidity").tag("location", "Upstairs").field("humidity", humidity).time(datetime.utcnow(), WritePrecision.NS)
+                    write_api.write(bucket, org, TempData)
+                    write_api.write(bucket, org, HumidityData)
+                    last_read_time = current_time
+                else:
+                    logging.warning("Invalid sensor data: temperature=%s, humidity=%s", temp_c, humidity)
+            time.sleep(1)
+
+if __name__ == "__main__":
+    main()
